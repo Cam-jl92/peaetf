@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AlphaPEA Terminal | Comparateur & Simulateur ETF PEA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Chart.js pour les graphiques interactifs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --bg: #0b0f15;
+  --panel: #131b24;
+  --panel-hover: #192330;
+  --ink: #f0f4f8;
+  --muted: #8a9bb0;
+  --line: #223041;
+  --a: #3b82f6;
+  --b: #f97316;
+  --ok: #10b981;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  box-sizing: border-box;
+}
+
+[data-theme="light"] {
+  --bg: #f4f6f9;
+  --panel: #ffffff;
+  --panel-hover: #f8fafc;
+  --ink: #111827;
+  --muted: #6b7280;
+  --line: #e2e8f0;
+  --a: #2563eb;
+  --b: #ea580c;
+  --ok: #059669;
+  --warn: #d97706;
+  --danger: #dc2626;
+}
+
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 16px; line-height: 1.6; transition: background 0.3s, color 0.3s; }
+header { border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
+.header-inner { max-width: 1200px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-family: var(--font-mono); font-weight: 600; font-size: 1.2rem; color: var(--a); display: flex; align-items: center; gap: 0.5rem; text-decoration: none; }
+.logo span { color: var(--b); }
+nav a { color: var(--muted); text-decoration: none; margin-left: 1.5rem; font-size: 0.95rem; font-weight: 500; transition: color 0.2s; }
+nav a:hover { color: var(--ink); }
+.theme-toggle { background: var(--line); border: none; color: var(--ink); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 1.5rem; }
+
+main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+
+/* Hero */
+.hero { text-align: center; padding: 3rem 1rem 4rem; max-width: 800px; margin: 0 auto; }
+.hero h1 { font-family: var(--font-serif); font-size: clamp(2.2rem, 5vw, 3.5rem); font-weight: 600; line-height: 1.15; margin: 0 0 1rem; letter-spacing: -0.02em; }
+.hero p { font-size: 1.2rem; color: var(--muted); margin: 0 0 2rem; }
+.badge { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.8rem; background: rgba(59, 130, 246, 0.1); color: var(--a); padding: 0.3rem 0.8rem; border-radius: 20px; border: 1px solid rgba(59, 130, 246, 0.2); margin-bottom: 1rem; }
+
+/* Grids & Cards */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1.8rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+.card h2 { font-family: var(--font-serif); font-size: 1.8rem; margin-top: 0; margin-bottom: 1rem; border-bottom: 1px solid var(--line); padding-bottom: 0.8rem; }
+.card h3 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; font-family: var(--font-sans); }
+
+/* Tables */
+.scroll-table { overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--line); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; min-width: 600px; }
+th, td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--line); }
+th { background: var(--panel-hover); font-weight: 600; font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+tr:last-child td { border-bottom: none; }
+
+/* Interactive Simulator */
+.sim-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.input-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.input-group label { font-size: 0.85rem; font-family: var(--font-mono); color: var(--muted); }
+.input-group input, .input-group select { background: var(--bg); border: 1px solid var(--line); color: var(--ink); padding: 0.7rem 1rem; border-radius: 6px; font-size: 1rem; font-family: var(--font-sans); }
+.input-group input:focus, .input-group select:focus { outline: none; border-color: var(--a); }
+.results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.metric-card { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 1.2rem; text-align: center; }
+.metric-val { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 600; color: var(--a); margin-top: 0.3rem; }
+.metric-lbl { font-size: 0.85rem; color: var(--muted); }
+
+/* FAQ Accordion */
+.faq-item { border-bottom: 1px solid var(--line); padding: 1.2rem 0; }
+.faq-q { font-weight: 600; font-size: 1.1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.faq-q::after { content: "+"; font-family: var(--font-mono); font-size: 1.3rem; color: var(--a); transition: transform 0.2s; }
+.faq-item.active .faq-q::after { transform: rotate(45deg); }
+.faq-a { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; color: var(--muted); font-size: 0.95rem; margin-top: 0; }
+.faq-item.active .faq-a { max-height: 300px; margin-top: 0.8rem; }
+
+/* Footer */
+footer { text-align: center; padding: 3rem 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="#" class="logo">ALPHA<span>PEA</span> // TERMINAL</a>
+    <nav>
+      <a href="#comparatif">Comparatif</a>
+      <a href="#simulateur">Simulateur</a>
+      <a href="#arbitrage">Arbitrage</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <button class="theme-toggle" id="themeToggle" title="Changer le thème">🌙</button>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="badge">Édition Octobre 2026 • Données institutionnelles PEA</div>
+    <h1>L'Excellence des ETF PEA</h1>
+    <p>Analyse comparative avancée, simulateur de capitalisation DCA et guide stratégique pour investir en actions mondiales et européennes au sein de votre Plan d'Épargne en Actions.</p>
+  </div>
+
+  <!-- SECTION COMPARATIF -->
+  <section id="comparatif" class="card">
+    <h2>Comparatif des Principaux ETF PEA</h2>
+    <p>Panorama complet des meilleurs trackers éligibles au PEA pour diversifier votre portefeuille (MSCI World, S&P 500, Marchés Émergents, Stoxx Europe 600).</p>
+    
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Indice / Nom</th>
+            <th>Ticker / ISIN</th>
+            <th>Émetteur</th>
+            <th>Frais (TER)</th>
+            <th>Encours</th>
+            <th>Prix Part</th>
+            <th>Réplication</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>MSCI World</strong> (WPEA)</td>
+            <td><code>IE0002XZSHO1</code></td>
+            <td>iShares (BlackRock)</td>
+            <td>0,20 %</td>
+            <td>~1,21 Md€</td>
+            <td>~6,90 €</td>
+            <td>Synthétique</td>
+          </tr>
+          <tr>
+            <td><strong>MSCI World</strong> (CW8)</td>
+            <td><code>LU1681043599</code></td>
+            <td>Amundi</td>
+            <td>0,38 % (0,28%*)</td>
+            <td>~5,20 Md€</td>
+            <td>~686 €</td>
+            <td>Synthétique</td>
+          </tr>
+          <tr>
+            <td><strong>S&P 500</strong> (ESE)</td>
+            <td><code>LU1681048803</code></td>
+            <td>Amundi</td>
+            <td>0,15 %</td>
+            <td>~2,1 Md€</td>
+            <td>~420 €</td>
+            <td>Synthétique</td>
+          </tr>
+          <tr>
+            <td><strong>MSCI Emerging Markets</strong> (PAASI)</td>
+            <td><code>FR0013412020</code></td>
+            <td>Amundi</td>
+            <td>0,20 %</td>
+            <td>~650 M€</td>
+            <td>~24 €</td>
+            <td>Synthétique</td>
+          </tr>
+          <tr>
+            <td><strong>Stoxx Europe 600</strong> (MEUD)</td>
+            <td><code>LU0908500753</code></td>
+            <td>Amundi</td>
+            <td>0,18 %</td>
+            <td>~1,1 Md€</td>
+            <td>~145 €</td>
+            <td>Physique / Éligible</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:0.85rem; color: var(--muted);">* Note : Certains courtiers indiquent 0,28 % pour CW8 selon les accords de distribution. WPEA se distingue par son prix de part unitaire très bas (~7€), idéal pour les petits versements réguliers sans fractions de parts.</p>
+  </section>
+
+  <!-- SECTION SIMULATEUR DCA -->
+  <section id="simulateur" class="card">
+    <h2>Simulateur de Capitalisation & DCA</h2>
+    <p>Estimez la croissance de votre épargne sur le PEA selon votre effort d'épargne mensuel et l'ETF choisi.</p>
+    
+    <div class="sim-controls">
+      <div class="input-group">
+        <label for="simMontant">Versement Mensuel (€)</label>
+        <input type="number" id="simMontant" value="300" step="50" min="50">
+      </div>
+      <div class="input-group">
+        <label for="simDuree">Horizon (Années)</label>
+        <input type="number" id="simDuree" value="20" step="1" min="1" max="40">
+      </div>
+      <div class="input-group">
+        <label for="simRendement">Rendement Annuel Brut estimé (%)</label>
+        <input type="number" id="simRendement" value="7.5" step="0.5" min="0" max="15">
+      </div>
+      <div class="input-group">
+        <label for="simFrais">Frais de gestion (TER %)</label>
+        <select id="simFrais">
+          <option value="0.15">0.15% (Amundi S&P 500 ESE)</option>
+          <option value="0.20" selected>0.20% (iShares WPEA / PAASI)</option>
+          <option value="0.38">0.38% (Amundi CW8)</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="position: relative; height:320px; width:100%; margin-top:2rem;">
+      <canvas id="dcaChart"></canvas>
+    </div>
+
+    <div class="results-grid">
+      <div class="metric-card">
+        <div class="metric-lbl">Capital Versé Total</div>
+        <div class="metric-val" id="resVerse">0 €</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">Intérêts Composés Nets</div>
+        <div class="metric-val" id="resInterets" style="color: var(--ok);">0 €</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">Valeur Finale Nette</div>
+        <div class="metric-val" id="resTotal" style="color: var(--a);">0 €</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION ARBITRAGE FISCAL -->
+  <section id="arbitrage" class="card">
+    <h2>Calculateur d'Arbitrage Fiscal (CW8 vs WPEA)</h2>
+    <p>Vous détenez déjà du CW8 en plus-value et hésitez à basculer sur WPEA pour réduire vos frais ? Évaluez l'impact de la flat tax (ou prélèvements sociaux) sur l'arbitrage.</p>
+    
+    <div class="sim-controls">
+      <div class="input-group">
+        <label for="arbPlusValue">Plus-value latente actuelle (€)</label>
+        <input type="number" id="arbPlusValue" value="10000" step="500">
+      </div>
+      <div class="input-group">
+        <label for="arbImpot">Taux d'imposition à la vente (%)</label>
+        <input type="number" id="arbImpot" value="17.2" step="0.1">
+        <span style="font-size:0.75rem; color:var(--muted)">17.2% (PS si PEA > 5 ans) ou 30% (si PEA < 5 ans)</span>
+      </div>
+      <div class="input-group">
+        <label for="arbGainFrais">Économie de frais annuelle (%)</label>
+        <input type="number" id="arbGainFrais" value="0.18" step="0.01">
+      </div>
+    </div>
+
+    <div class="results-grid" style="margin-top: 1.5rem;">
+      <div class="metric-card">
+        <div class="metric-lbl">Impôt immédiat si arbitrage</div>
+        <div class="metric-val" id="resImpot" style="color: var(--danger);">0 €</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">Années pour amortir l'impôt</div>
+        <div class="metric-val" id="resAmortissement">0 ans</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION FAQ -->
+  <section id="faq" class="card">
+    <h2>Foire Aux Questions (FAQ)</h2>
+    
+    <div class="faq-item">
+      <div class="faq-q">Pourquoi les ETF MSCI World en PEA utilisent-ils un swap (réplication synthétique) ?</div>
+      <div class="faq-a">Le PEA impose d'investir dans des actions d'entreprises dont le siège est dans l'Union Européenne. Or, le MSCI World contient principalement des actions américaines (Apple, Microsoft, Nvidia...). La réplication synthétique via un contrat de swap permet d'échanger la performance d'un panier d'actions européennes contre celle du MSCI World, tout en respectant scrupuleusement la réglementation du PEA.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">WPEA ou CW8 : Lequel choisir pour débuter ?</div>
+      <div class="faq-a">Pour un investisseur effectuant des versements réguliers modérés (ex: 100€ à 300€ par mois), WPEA est souvent privilégié grâce à son prix de part très bas (~7€) qui évite d'avoir du cash non investi. CW8 reste une référence historique extrêmement solide avec un encours massif, mais demande un effort d'épargne supérieur par ordre en raison d'une part à ~686€ (sauf si votre courtier gère les fractions de parts).</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Quels sont les risques liés aux ETF à réplication synthétique ?</div>
+      <div class="faq-a">Le principal risque est le risque de contrepartie du swap (la banque qui garantit la performance). Cependant, les directives européennes UCITS encadrent strictement cette pratique et limitent l'exposition nette de la contrepartie à un maximum de 10% de l'actif du fonds, couplé à des garanties financières journalières.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Quels frais faut-il surveiller sur un PEA ?</div>
+      <div class="faq-a">Il faut distinguer les frais internes du fonds (TER prélevés directement dans l'ETF, ex: 0,20% pour WPEA) et les frais de courtage de votre enveloppe PEA (frais d'ordre de bourse, plafonnés par la loi Pacte à 0,5% maximum pour les ordres passés en ligne).</div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>AlphaPEA Terminal • Données à titre indicatif et éducatif. Ne constitue pas un conseil en investissement financier.</p>
+</footer>
+
+<script>
+  // Gestion du thème Dark/Light
+  const themeToggle = document.getElementById('themeToggle');
+  const htmlEl = document.documentElement;
+  
+  themeToggle.addEventListener('click', () => {
+    const currentTheme = htmlEl.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    htmlEl.setAttribute('data-theme', newTheme);
+    themeToggle.textContent = newTheme === 'dark' ? '🌙' : '☀️';
+    updateChartTheme(newTheme);
+  });
+
+  // Accordéon FAQ
+  document.querySelectorAll('.faq-q').forEach(question => {
+    question.addEventListener('click', () => {
+      const item = question.parentElement;
+      item.classList.toggle('active');
+    });
+  });
+
+  // Logique du Simulateur DCA & Graphique Chart.js
+  let dcaChart = null;
+
+  function formatMoney(val) {
+    return Math.round(val).toLocaleString('fr-FR') + ' €';
+  }
+
+  function runSimulation() {
+    const montant = parseFloat(document.getElementById('simMontant').value) || 0;
+    const duree = parseInt(document.getElementById('simDuree').value) || 0;
+    const tauxBrut = parseFloat(document.getElementById('simRendement').value) || 0;
+    const frais = parseFloat(document.getElementById('simFrais').value) || 0;
+
+    const tauxNet = (tauxBrut - frais) / 100;
+    const tauxMensuel = tauxNet / 12;
+    const moisTotal = duree * 12;
+
+    let labels = [];
+    let dataVerse = [];
+    let dataTotal = [];
+
+    let totalVerse = 0;
+    let valeurActuelle = 0;
+
+    for (let m = 0; m <= moisTotal; m++) {
+      if (m > 0) {
+        totalVerse += montant;
+        valeurActuelle = (valeurActuelle + montant) * (1 + tauxMensuel);
+      }
+      if (m % 12 === 0) {
+        labels.setAttribute ? null : '';
+        let annee = m / 12;
+        labels.push('Année ' + annee);
+        dataVerse.push(Math.round(totalVerse));
+        dataTotal.push(Math.round(valeurActuelle));
+      }
+    }
+
+    document.getElementById('resVerse').textContent = formatMoney(totalVerse);
+    document.getElementById('resInterets').textContent = formatMoney(valeurActuelle - totalVerse);
+    document.getElementById('resTotal').textContent = formatMoney(valeurActuelle);
+
+    updateChart(labels, dataVerse, dataTotal);
+    runArbitrage();
+  }
+
+  function updateChart(labels, dataVerse, dataTotal) {
+    const isDark = htmlEl.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? '#223041' : '#e2e8f0';
+    const textColor = isDark ? '#8a9bb0' : '#6b7280';
+
+    if (dcaChart) {
+      dcaChart.data.labels = labels;
+      dcaChart.data.datasets[0].data = dataVerse;
+      dcaChart.data.datasets[1].data = dataTotal;
+      dcaChart.options.scales.x.grid.color = gridColor;
+      dcaChart.options.scales.y.grid.color = gridColor;
+      dcaChart.options.scales.x.ticks.color = textColor;
+      dcaChart.options.scales.y.ticks.color = textColor;
+      dcaChart.update();
+      return;
+    }
+
+    const ctx = document.getElementById('dcaChart').getContext('2d');
+    dcaChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Capital Versé (€)',
+            data: dataVerse,
+            borderColor: '#8a9bb0',
+            backgroundColor: 'rgba(138, 155, 176, 0.1)',
+            fill: true,
+            tension: 0.2,
+            borderWidth: 2
+          },
+          {
+            label: 'Valeur Totale Nette (€)',
+            data: dataTotal,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+            fill: true,
+            tension: 0.2,
+            borderWidth: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { font: { family: 'IBM Plex Sans' } } }
+        },
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { color: textColor } },
+          y: { grid: { color: gridColor }, ticks: { color: textColor } }
+        }
+      }
+    });
+  }
+
+  function updateChartTheme(theme) {
+    runSimulation();
+  }
+
+  function runArbitrage() {
+    const pv = parseFloat(document.getElementById('arbPlusValue').value) || 0;
+    const tauxImp = parseFloat(document.getElementById('arbImpot').value) || 0;
+    const gainFrais = parseFloat(document.getElementById('arbGainFrais').value) || 0;
+
+    const impot = pv * (tauxImp / 100);
+    const economieAnnuelle = pv * (gainFrais / 100);
+    const anneesAmortissement = economieAnnuelle > 0 ? (impot / economieAnnuelle).toFixed(1) : '∞';
+
+    document.getElementById('resImpot').textContent = formatMoney(impot);
+    document.getElementById('resAmortissement').textContent = anneesAmortissement + ' ans';
+  }
+
+  // Écouteurs de modification
+  document.querySelectorAll('.sim-controls input, .sim-controls select').forEach(el => {
+    el.addEventListener('input', runSimulation);
+  });
+
+  // Initialisation au chargement
+  runSimulation();
+</script>
+</body>
+</html>
